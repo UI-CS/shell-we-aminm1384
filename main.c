@@ -12,7 +12,19 @@ int main() {
 
   while (fgets(input, max_size, stdin) !=NULL) {
 
+
   input[strlen(input) - 1] = '\0';
+
+
+  int i = 0;
+  char *token = strtok(input, " ");
+  while (token != NULL && i < 63) {
+    args[i++] = token;
+    token = strtok(NULL, " ");
+   }
+  args[i] = NULL;
+
+ 
   if (strncmp(input, "exit", 4) == 0) {
       char *rest = input + 4; 
 
