@@ -130,10 +130,26 @@ int main() {
             }
         }
 
-        /* ---------- unknown command ---------- */
         else {
-            printf("%s: command not found\n", args[0]);
+            pid_t pid = fork();
+
+            if (pid < 0) {
+                perror("fork failed");
+            }
+
+            /* child */
+            else if (pid == 0) {
+                execvp(args[0], args);
+                perror("command not found");
+                exit(1);
+            }
+
+            /* parent */
+            else {
+                wait(NULL);
+            }
         }
+
 
 
   }
