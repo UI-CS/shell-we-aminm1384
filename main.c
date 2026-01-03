@@ -4,109 +4,144 @@
 #include <unistd.h>
 
 int main() {
-  setbuf(stdout, NULL);
-  printf("$ ");
-  
-  int max_size = 1024;
-  char input[max_size];
-
-  while (fgets(input, max_size, stdin) !=NULL) {
 
 
-  input[strlen(input) - 1] = '\0';
+    setbuf(stdout, NULL);
 
+    int should_run = 1;
+    int max_size = 1024;
 
-  int i = 0;
-  char *token = strtok(input, " ");
-  while (token != NULL && i < 63) {
-    args[i++] = token;
-    token = strtok(NULL, " ");
-   }
-  args[i] = NULL;
+    char *args[64];
+    char input[max_size];
 
- 
-  if (strncmp(input, "exit", 4) == 0) {
-      char *rest = input + 4; 
-
-      
-      while (*rest == ' ') rest++;
-
-      if (*rest == '\0') {
-          
-          return 0;
-      } else {
-          
-          int status = atoi(rest); 
-          return status;
-      }
-  }
-
-
-
-  else if (strncmp(input, "echo", 4) == 0) {
-        if (strlen(input) == 4) {
-            printf("\n");
-        } else if (input[4] == ' ') {
-            printf("%s\n", input + 5);
-        } else {
-            printf("%s: command not found\n", input);
-        }
-    }
-
-
-  
-  else if (strncmp(input, "type ", 5) == 0) {
-    char *cmd_name = input + 5; 
-
-       
-    while (*cmd_name == ' ') cmd_name++;
-
-      
-    if (strcmp(cmd_name, "exit") == 0 ||
-        strcmp(cmd_name, "echo") == 0 ||
-        strcmp(cmd_name, "type") == 0) {
-        printf("%s is a shell builtin\n", cmd_name);
-        } else {
-            char *path = getenv("PATH");
-            if (path == NULL){
-                printf("path does not exist\n");
-                return 0;
-            }
-            else{
-                int found = 0;
-                char path_copy[4096];
-                strcpy(path_copy, path);
-                char *token = strtok(path_copy, ":");
-                
-                while (token !=NULL) {
-                    char full_path[1024];
-                    snprintf(full_path, sizeof(full_path), "%s/%s",token ,cmd_name );
-
-                    if (access(full_path, X_OK)== 0){
-                        printf("%s is %s\n",cmd_name, full_path);
-                        found = 1;
-                        break;
-                    }
-                    token = strtok(NULL, ":");
-                }
-                if (found == 0){
-                    printf("%s: not found\n",cmd_name);
-                }
-            }
-        }
-    }
+    while (should_run) {
     
+        printf("uinxsh> ");
 
-    else {
-        printf("%s: command not found\n", input);
-    }
+        if (fgets(input, max_size, stdin)== NULL){
+            break;
+        }
+
+        input[strlen(input) - 1] = '\0';
+        
+
+        int i = 0;
+        char *token = strtok(input, " ");
+        while (token != NULL && i < 63) {
+            args[i++] = token;
+            token = strtok(NULL, " ");
+        }
+        args[i] = NULL;
+        
+        if (args[0] == NULL) {
+                    continue;
+                }
+ 
+        // ---------- exit ----------
+        if (strcmp(args[0], "exit") == 0) {
+
+            int status = 0;
+
+            if (args[1] != NULL) {
+                status = atoi(args[1]);
+            }
+
+            should_run = 0;
+            return status;
+        }
 
 
 
-  printf("$ ");
+        /* ---------- echo ---------- */
+        else if (strcmp(args[0], "echo") == 0) {
+            for (int j = 1; args[j] != NULL; j++) {
+                printf("%s", args[j]);
+                if (args[j + 1] != NULL)
+                    printf(" ");
+            }
+            printf("\n");
+        }
+
+
+        /* ---------- pwd ---------- */
+        else if (strcmp(args[0], "pwd") == 0) {
+            char cwd[PATH_MAX];
+            if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                printf("%s\n", cwd);
+            } else {
+                perror("pwd");
+            }
+        }
+
+
+        /* ---------- cd ---------- */
+        else if (strcmp(args[0], "cd") == 0) {
+            char *path = args[1];
+
+            if (path == NULL) {
+                path = getenv("HOME");
+            }
+
+            if (chdir(path) != 0) {
+                perror("cd");
+            }
+        }
+  
+        /* ---------- type ---------- */
+        else if (strcmp(args[0], "type") == 0) {
+
+            if (args[1] == NULL) {
+                printf("type: missing argument\n");
+            }
+            else if (
+                strcmp(args[1], "exit") == 0 ||
+                strcmp(args[1], "echo") == 0 ||
+                strcmp(args[1], "type") == 0 ||
+                strcmp(args[1], "cd")   == 0 ||
+                strcmp(args[1], "pwd")  == 0
+            ) {
+                printf("%s is a shell builtin\n", args[1]);
+            }
+            else {
+                char *path = getenv("PATH");
+                int found = 0;
+
+                if (path != NULL) {
+                    char path_copy[4096];
+                    strcpy(path_copy, path);
+
+                    char *dir = strtok(path_copy, ":");
+                    while (dir != NULL) {
+                        char full_path[1024];
+                        snprintf(full_path, sizeof(full_path),"%s/%s", dir, args[1]);
+
+                        if (access(full_path, X_OK) == 0) {
+                            printf("%s is %s\n", args[1], full_path);
+                            found = 1;
+                            break;
+                        }
+                        dir = strtok(NULL, ":");
+                    }
+                }
+
+                if (!found) {
+                    printf("%s: not found\n", args[1]);
+                }
+            }
+        }
+
+        /* ---------- unknown command ---------- */
+        else {
+            printf("%s: command not found\n", args[0]);
+        }
+
 
   }
 
-
-  return 0;
+   return 0;
 }
+
+
+
+
+
