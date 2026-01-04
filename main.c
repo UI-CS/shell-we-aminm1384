@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <limits.h>
 
 int main() {
 
@@ -15,6 +17,8 @@ int main() {
     char input[max_size];
 
     while (should_run) {
+
+        while (waitpid(-1, NULL, WNOHANG) > 0);
     
         printf("uinxsh> ");
 
@@ -24,7 +28,7 @@ int main() {
 
         input[strlen(input) - 1] = '\0';
         
-
+        //---parsing
         int i = 0;
         char *token = strtok(input, " ");
         while (token != NULL && i < 63) {
@@ -36,8 +40,16 @@ int main() {
         if (args[0] == NULL) {
                     continue;
                 }
+
+        int background = 0;
+
+        if (i > 0 && strcmp(args[i - 1], "&") == 0) {
+            background = 1;
+            args[i - 1] = NULL; // حذف &
+        }
+
  
-        // ---------- exit ----------
+        //---exit 
         if (strcmp(args[0], "exit") == 0) {
 
             int status = 0;
@@ -52,7 +64,7 @@ int main() {
 
 
 
-        /* ---------- echo ---------- */
+        //---echo 
         else if (strcmp(args[0], "echo") == 0) {
             for (int j = 1; args[j] != NULL; j++) {
                 printf("%s", args[j]);
@@ -63,7 +75,7 @@ int main() {
         }
 
 
-        /* ---------- pwd ---------- */
+        //---pwd
         else if (strcmp(args[0], "pwd") == 0) {
             char cwd[PATH_MAX];
             if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -74,7 +86,7 @@ int main() {
         }
 
 
-        /* ---------- cd ---------- */
+        //---cd
         else if (strcmp(args[0], "cd") == 0) {
             char *path = args[1];
 
@@ -87,7 +99,7 @@ int main() {
             }
         }
   
-        /* ---------- type ---------- */
+        //---type
         else if (strcmp(args[0], "type") == 0) {
 
             if (args[1] == NULL) {
@@ -137,18 +149,23 @@ int main() {
                 perror("fork failed");
             }
 
-            /* child */
+            //---child
             else if (pid == 0) {
                 execvp(args[0], args);
                 perror("command not found");
                 exit(1);
             }
 
-            /* parent */
+            //---parent
             else {
-                wait(NULL);
+                if (!background) {
+                    wait(NULL);   // foreground
+                } else {
+                    printf("[running in background] pid=%d\n", pid);
+                }
             }
         }
+
 
 
 
