@@ -15,6 +15,7 @@ int main() {
 
     char *args[64];
     char input[max_size];
+    char last_command[1024] = {0}; 
 
     while (should_run) {
 
@@ -36,10 +37,37 @@ int main() {
             token = strtok(NULL, " ");
         }
         args[i] = NULL;
+
+
+        if (strcmp(args[0], "!!") == 0) {
+
+            if (strlen(last_command) == 0) {
+                printf("No commands in history\n");
+                continue;
+            }
+
+            printf("%s\n", last_command);
+            strcpy(input, last_command);
+
+
+            i = 0;
+            token = strtok(input, " ");
+            while (token != NULL && i < 63) {
+                args[i++] = token;
+                token = strtok(NULL, " ");
+            }
+            args[i] = NULL;
+        }
+
         
         if (args[0] == NULL) {
                     continue;
                 }
+
+        if (strcmp(args[0], "!!") != 0) {
+            strcpy(last_command, input);
+        }
+
 
         int background = 0;
 
